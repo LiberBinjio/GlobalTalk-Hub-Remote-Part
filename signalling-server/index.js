@@ -11,6 +11,15 @@ const server = http.createServer(app);
 const io = require("socket.io")(server, {
 	cors: { origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : "*" },
 });
+const path = require("path");
+
+// 配置静态文件目录为项目根目录
+app.use(express.static(path.join(__dirname, '..')));
+
+// 路由处理器处理根路径请求
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
 
 const util = require("util");
 

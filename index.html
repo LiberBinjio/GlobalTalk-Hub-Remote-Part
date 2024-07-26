@@ -113,7 +113,9 @@
 					</div>
 					<small class="light">Press enter to submit</small>
 				</div>
-
+				<!-- 通知容器 -->
+				<div id="notification-container" style="position: fixed; top: 10px; right: 10px; z-index: 1000;"></div>
+				<!-- 在 HTML 中添加一个 notification-container 元素以便webrtc.js文件的showNotification函数找到该元素 -->
 				<div id="settings" v-if="showSettings">
 					<div id="name" class="label">
 						<span>Name:</span>

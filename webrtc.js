@@ -46,7 +46,7 @@ window.initiateCall = () => {
 		App.peerId = signalingSocket.id;
 
 		console.log("peerId: " + App.peerId);
-
+		
 		const userData = {
 			peerName: App.name,
 			videoEnabled: App.videoEnabled,
@@ -57,7 +57,7 @@ window.initiateCall = () => {
 			isIpad: App.isIpad,
 			isDesktop: App.isDesktop,
 		};
-
+		showNotification(App.name + ' has joined the room ' + App.roomId);
 		if (localMediaStream) joinChatChannel(App.roomId, userData);
 		else
 			setupLocalMedia(function () {
@@ -77,7 +77,26 @@ window.initiateCall = () => {
 		peers = {};
 		peerMediaElements = {};
 	});
-
+	// 显示通知
+	function showNotification(message) {
+		const notificationContainer = document.getElementById("notification-container");
+		if (notificationContainer) {
+			const notification = document.createElement("div");
+			notification.className = "notification";
+			notification.innerText = message;
+			notificationContainer.appendChild(notification);
+			// 4秒后开始淡出
+			setTimeout(() => {
+				notification.classList.add("fade-out");
+			}, 4000);
+			// 7秒后移除通知
+			setTimeout(() => {
+				notificationContainer.removeChild(notification);
+			}, 7000);
+		} else {
+			console.error("Notification container not found.");
+		}
+	}
 	function joinChatChannel(channel, userData) {
 		signalingSocket.emit("join", { channel: channel, userData: userData });
 	}
@@ -124,7 +143,7 @@ window.initiateCall = () => {
 				const videoAvatarImg = document.getElementById(peerId + "_videoEnabled");
 				const videoEnabled = channel[peerId]["userData"]["videoEnabled"];
 				if (videoAvatarImg && !videoEnabled) {
-					videoAvatarImg.style.visibility = "visible";
+					videoAvatarImg.style.visibility = "invisible";
 				}
 
 				const audioEnabledEl = document.getElementById(peerId + "_audioEnabled");
@@ -134,9 +153,9 @@ window.initiateCall = () => {
 				}
 			}
 		};
-
+		
 		peerConnection.ondatachannel = function (event) {
-			console.log("Datachannel event" + peer_id, event);
+			showNotification(App.name + " joined");
 			event.channel.onmessage = (msg) => {
 				let dataMessage = {};
 				try {
@@ -233,33 +252,55 @@ window.initiateCall = () => {
 	});
 };
 
+// 显示通知
+function showNotification(message) {
+    const notificationContainer = document.getElementById("notification-container");
+    if (notificationContainer) {
+        const notification = document.createElement("div");
+        notification.className = "notification";
+        notification.innerText = message;
+        notificationContainer.appendChild(notification);
+		// 4秒后开始淡出
+        setTimeout(() => {
+            notification.classList.add("fade-out");
+        }, 4000);
+		// 7秒后移除通知
+        setTimeout(() => {
+            notificationContainer.removeChild(notification);
+        }, 7000);
+    } else {
+        console.error("Notification container not found.");
+    }
+}
+
+// 用于将媒体流附加到元素
 const attachMediaStream = (element, stream) => (element.srcObject = stream);
-
+// 设置本地媒体流
 function setupLocalMedia(callback, errorback) {
-	if (localMediaStream != null) {
-		if (callback) callback();
-		return;
-	}
+    if (localMediaStream != null) {
+        if (callback) callback();
+        return;
+    }
 
-	navigator.mediaDevices
-		.getUserMedia({ audio: USE_AUDIO, video: USE_VIDEO })
-		.then((stream) => {
-			localMediaStream = stream;
-			const localMedia = getVideoElement(App.peerId, true);
-			attachMediaStream(localMedia, stream);
-			resizeVideos();
-			if (callback) callback();
+    navigator.mediaDevices
+        .getUserMedia({ audio: USE_AUDIO, video: USE_VIDEO })
+        .then((stream) => {
+            localMediaStream = stream;
+            const localMedia = getVideoElement(App.peerId, true);
+            attachMediaStream(localMedia, stream);
+            resizeVideos();
+            if (callback) callback();
 
-			navigator.mediaDevices.enumerateDevices().then((devices) => {
-				App.videoDevices = devices.filter((device) => device.kind === "videoinput" && device.deviceId !== "default");
-				App.audioDevices = devices.filter((device) => device.kind === "audioinput" && device.deviceId !== "default");
-			});
-		})
-		.catch(() => {
-			/* user denied access to a/v */
-			alert("This site will not work without camera/microphone access.");
-			if (errorback) errorback();
-		});
+            navigator.mediaDevices.enumerateDevices().then((devices) => {
+                App.videoDevices = devices.filter((device) => device.kind === "videoinput" && device.deviceId !== "default");
+                App.audioDevices = devices.filter((device) => device.kind === "audioinput" && device.deviceId !== "default");
+            });
+        })
+        .catch(() => {
+			// 显示通知
+            showNotification("Camera/Microphone access denied or not found.");
+            if (errorback) errorback();
+        });
 }
 
 const getVideoElement = (peerId, isLocal) => {

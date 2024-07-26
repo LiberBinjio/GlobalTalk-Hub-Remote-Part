@@ -31,19 +31,23 @@ server.listen(PORT, null, () => {
 	console.log({ port: PORT, node_version: process.versions.node });
 });
 
+// 管理频道、套接字和对等方
 const channels = {};
 const sockets = {};
 const peers = {};
 
 const options = { depth: null, colors: true };
 
+// 处理新连接的信令服务器逻辑
 const signallingServer = (socket) => {
 	const clientAddress = socket.handshake.address;
 
-	socket.channels = {};
+	socket.channels = {}; // 存储此套接字加入的频道
 	sockets[socket.id] = socket;
 
 	console.log("[" + socket.id + "] connection accepted");
+
+	// 处理断开连接
 	socket.on("disconnect", () => {
 		for (const channel in socket.channels) {
 			part(channel);
@@ -52,11 +56,12 @@ const signallingServer = (socket) => {
 		delete sockets[socket.id];
 	});
 
+	// 处理用户加入频道
 	socket.on("join", (config) => {
 		console.log("[" + socket.id + "] join ", config);
 		const channel = clientAddress + config.channel;
 
-		// Already Joined
+		// 已经加入了该频道
 		if (channel in socket.channels) return;
 
 		if (!(channel in channels)) {
@@ -86,6 +91,7 @@ const signallingServer = (socket) => {
 		socket.channels[channel] = channel;
 	});
 
+	// 更新用户数据
 	socket.on("updateUserData", async (config) => {
 		const channel = clientAddress + config.channel;
 		const key = config.key;
@@ -98,6 +104,7 @@ const signallingServer = (socket) => {
 		console.log("[" + socket.id + "] updateUserData", util.inspect(peers[channel][socket.id], options));
 	});
 
+	// 处理离开频道
 	const part = (channel) => {
 		// Socket not in channel
 		if (!(channel in socket.channels)) return;
@@ -118,6 +125,7 @@ const signallingServer = (socket) => {
 		}
 	};
 
+	// 处理ICE候选者的转发
 	socket.on("relayICECandidate", (config) => {
 		let peer_id = config.peer_id;
 		let ice_candidate = config.ice_candidate;
@@ -127,6 +135,7 @@ const signallingServer = (socket) => {
 		}
 	});
 
+	// 处理会话描述的转发
 	socket.on("relaySessionDescription", (config) => {
 		let peer_id = config.peer_id;
 		let session_description = config.session_description;

@@ -58,11 +58,12 @@ window.initiateCall = () => {
 			isDesktop: App.isDesktop,
 		};
 		showNotification(App.name + ' has joined the room ' + App.roomId);
-		if (localMediaStream) joinChatChannel(App.roomId, userData);
-		else
-			setupLocalMedia(function () {
-				joinChatChannel(App.roomId, userData);
-			});
+		// 注释下面两行决定是否允许本地多开标签页
+		// if (localMediaStream) joinChatChannel(App.roomId, userData);
+		// else
+		setupLocalMedia(function () {
+			joinChatChannel(App.roomId, userData);
+		});
 	});
 
 	signalingSocket.on("disconnect", function () {
@@ -185,7 +186,7 @@ window.initiateCall = () => {
 								});
 							})
 							.catch(() => {
-								alert("Offer setLocalDescription failed!");
+								this.showNotification("Offer setLocalDescription failed!");
 							});
 					})
 					.catch((error) => {
@@ -215,7 +216,7 @@ window.initiateCall = () => {
 										session_description: localDescription,
 									});
 								},
-								() => alert("Answer setLocalDescription failed!")
+								() => this.showNotification("Answer setLocalDescription failed!")
 							);
 						},
 						(error) => console.log("Error creating answer: ", error)
@@ -252,26 +253,6 @@ window.initiateCall = () => {
 	});
 };
 
-// 显示通知
-function showNotification(message) {
-    const notificationContainer = document.getElementById("notification-container");
-    if (notificationContainer) {
-        const notification = document.createElement("div");
-        notification.className = "notification";
-        notification.innerText = message;
-        notificationContainer.appendChild(notification);
-		// 4秒后开始淡出
-        setTimeout(() => {
-            notification.classList.add("fade-out");
-        }, 4000);
-		// 7秒后移除通知
-        setTimeout(() => {
-            notificationContainer.removeChild(notification);
-        }, 7000);
-    } else {
-        console.error("Notification container not found.");
-    }
-}
 
 // 用于将媒体流附加到元素
 const attachMediaStream = (element, stream) => (element.srcObject = stream);

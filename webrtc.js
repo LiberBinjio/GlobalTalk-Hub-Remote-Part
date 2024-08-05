@@ -266,6 +266,10 @@ function setupLocalMedia(callback, errorback) {
     navigator.mediaDevices
         .getUserMedia({ audio: USE_AUDIO, video: USE_VIDEO })
         .then((stream) => {
+			// 获取到媒体流后，禁用所有轨道
+			stream.getTracks().forEach((track) => {  
+                track.enabled = false;  
+            });  
             localMediaStream = stream;
             const localMedia = getVideoElement(App.peerId, true);
             attachMediaStream(localMedia, stream);

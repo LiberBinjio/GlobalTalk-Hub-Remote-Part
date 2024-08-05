@@ -53,7 +53,7 @@ const App = Vue.createApp({
 			window.initiateCall();
 		},
 		// 确保摄像头和麦克风处于禁用状态
-		if (localMediaStream) {
+		if(localMediaStream) {
 			localMediaStream.getAudioTracks().forEach(track => track.enabled = this.audioEnabled);
 			localMediaStream.getVideoTracks().forEach(track => track.enabled = this.videoEnabled);
 		},
@@ -77,10 +77,33 @@ const App = Vue.createApp({
 		// 切换视频状态
 		videoToggle(e) {
 			e.stopPropagation();
-			localMediaStream.getVideoTracks()[0].enabled = !localMediaStream.getVideoTracks()[0].enabled;
 			this.videoEnabled = !this.videoEnabled;
 			this.updateUserData("videoEnabled", this.videoEnabled);
+
+			if (this.videoEnabled) {
+				// 用户打开了摄像头，获取摄像头的媒体流  
+				navigator.mediaDevices.getUserMedia({ video: true })
+					.then((stream) => {
+						// 将新的媒体流添加到所有的 RTCPeerConnection 中  
+						for (let peer_id in peers) {
+							const sender = peers[peer_id].getSenders().find((s) => (s.track ? s.track.kind === 'video' : false));
+							sender.replaceTrack(stream.getVideoTracks()[0]);
+						}
+						// 更新 localMediaStream  
+						localMediaStream = stream;
+						// 更新自己的视频标签的媒体流  
+						attachMediaStream(document.getElementById('selfVideo'), stream);
+					})
+					.catch((err) => {
+						console.log('Failed to get local stream', err);
+					});
+			} else {
+				// 用户关闭了摄像头，停止所有的视频轨道  
+				localMediaStream.getVideoTracks().forEach(track => track.stop());
+			}
 		},
+
+
 		// 切换自视频镜像
 		toggleSelfVideoMirror() {
 			document.querySelector("#videos .video #selfVideo").classList.toggle("mirror");
@@ -114,55 +137,69 @@ const App = Vue.createApp({
 				console.error("Notification container not found.");
 			}
 		},
-		// 切换屏幕共享状态
+
+		// 切换屏幕共享状态  
 		screenShareToggle(e) {
 			e.stopPropagation();
 			let screenMediaPromise;
-			if (!App.screenShareEnabled) {
+			if (!this.screenShareEnabled) {
 				if (navigator.getDisplayMedia) {
 					screenMediaPromise = navigator.getDisplayMedia({ video: true });
 				} else if (navigator.mediaDevices.getDisplayMedia) {
 					screenMediaPromise = navigator.mediaDevices.getDisplayMedia({ video: true });
 				} else {
-					screenMediaPromise = navigator.mediaDevices.getUserMedia({
-						video: { mediaSource: "screen" },
-					});
+					screenMediaPromise = navigator.mediaDevices.getUserMedia({ video: { mediaSource: "screen" } });
 				}
 			} else {
-				screenMediaPromise = navigator.mediaDevices.getUserMedia({ video: true });
-				document.getElementById(this.peerId + "_videoEnabled").style.visibility = "hidden";
+				// 停止共享屏幕时，给screenMediaPromise赋值
+				screenMediaPromise = Promise.resolve();
 			}
+
 			screenMediaPromise
 				.then((screenStream) => {
 					this.screenShareEnabled = !this.screenShareEnabled;
-					// 这下面两行没必要，原先开着视频的话关共享屏幕继续开视频，原先没开视频为什么关共享屏幕自动开视频了呢？
-					// this.videoEnabled = true;
-					// this.updateUserData("videoEnabled", this.videoEnabled);
-					// 替换当前视频轨道	
-					for (let peer_id in peers) {
-						const sender = peers[peer_id].getSenders().find((s) => (s.track ? s.track.kind === "video" : false));
-						sender.replaceTrack(screenStream.getVideoTracks()[0]);
+					let videoTrack;
+					if (screenStream) {
+						// 用户启动屏幕共享    
+						videoTrack = screenStream.getVideoTracks()[0];
+						videoTrack.onended = function () {
+							if (this.screenShareEnabled) this.screenShareToggle();
+						};
+						// 隐藏摄像头关闭的图标  
+						document.getElementById(this.peerId + "_videoEnabled").style.visibility = 'hidden';
+					} else {
+						// 用户停止屏幕共享    
+						videoTrack = localMediaStream.getVideoTracks()[0];
+
+						// 如果用户已经关闭了摄像头，那么在停止屏幕共享时，仍然显示摄像头关闭的图标  
+						if (!this.videoEnabled) {
+							document.getElementById(this.peerId + "_videoEnabled").style.visibility = 'visible';
+						}
 					}
-					screenStream.getVideoTracks()[0].enabled = true;
-					const newStream = new MediaStream([screenStream.getVideoTracks()[0], localMediaStream.getAudioTracks()[0]]);
+					let tracks = [];
+					if (videoTrack) tracks.push(videoTrack);
+					if (localMediaStream.getAudioTracks()[0]) tracks.push(localMediaStream.getAudioTracks()[0]);
+					const newStream = new MediaStream(tracks);
 					localMediaStream = newStream;
+
+					// 添加新的媒体流到所有的 RTCPeerConnection 中  
+					for (let peer_id in peers) {
+						const sender = peers[peer_id].getSenders().find((s) => (s.track ? s.track.kind === 'video' : false));
+						sender.replaceTrack(newStream.getVideoTracks()[0]);
+					}
+
 					attachMediaStream(document.getElementById("selfVideo"), newStream);
 					this.toggleSelfVideoMirror();
 
-					screenStream.getVideoTracks()[0].onended = function () {
-						if (this.screenShareEnabled) this.screenShareToggle();
-					};
-					try {
-						if (cabin) {
-							cabin.event("screen-share-" + App.screenShareEnabled);
-						}
-					} catch (e) {}
+					// 发送消息，控制是否显示摄像头关闭的图标
+					this.sendDataMessage("screenShareEnabled", this.screenShareEnabled);
 				})
 				.catch((e) => {
 					this.showNotification("Unable to share screen. Please use a supported browser.");
 					console.error(e);
 				});
 		},
+
 		// 更新用户数据
 		updateUserData(key, value) {
 			this.sendDataMessage(key, value);
@@ -318,6 +355,15 @@ const App = Vue.createApp({
 				case "peerName":
 					document.getElementById(dataMessage.id + "_videoPeerName").innerHTML = dataMessage.message;
 					break;
+				case "screenShareEnabled":
+					const videoEnabledIcon = document.getElementById(dataMessage.id + "_videoEnabled");
+					if (dataMessage.message) {
+						// 用户开始了屏幕共享，隐藏图标  
+						videoEnabledIcon.style.display = 'none';
+					} else {
+						// 用户停止了屏幕共享，显示图标  
+						videoEnabledIcon.style.display = 'block';
+					}
 				default:
 					break;
 			}
@@ -349,7 +395,7 @@ const App = Vue.createApp({
 				if (cabin) {
 					cabin.event(e.target.getAttribute("data-cabin-event"));
 				}
-			} catch (e) {}
+			} catch (e) { }
 		},
 		// 退出通话
 		exit() {

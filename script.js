@@ -75,12 +75,6 @@ const App = Vue.createApp({
 			this.updateUserData("audioEnabled", this.audioEnabled);
 		},
 		// 切换视频状态
-		/* videoToggle(e) {
-			e.stopPropagation();
-			localMediaStream.getVideoTracks()[0].enabled = !localMediaStream.getVideoTracks()[0].enabled;
-			this.videoEnabled = !this.videoEnabled;
-			this.updateUserData("videoEnabled", this.videoEnabled);
-		}, */
 		videoToggle(e) {
 			e.stopPropagation();
 			this.videoEnabled = !this.videoEnabled;

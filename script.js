@@ -61,12 +61,8 @@ const App = Vue.createApp({
 			if (!this.roomId) return this.showNotification("Invalid room id");
 			if (!this.name) return this.showNotification("Invalid name");
 
-			const userData = {  
-				peerName: this.name, 
-			};
 			this.callInitiated = true;
 			window.initiateCall();
-			window.joinChatChannel(this.roomId, userData);
 
 			// 存储用户姓名和 roomId 到 sessionStorage  
 			window.sessionStorage.setItem('inChatRoom', 'true');

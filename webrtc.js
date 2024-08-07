@@ -46,7 +46,7 @@ window.initiateCall = () => {
 		App.peerId = signalingSocket.id;
 
 		console.log("peerId: " + App.peerId);
-		
+
 		const userData = {
 			peerName: App.name,
 			videoEnabled: App.videoEnabled,
@@ -98,7 +98,9 @@ window.initiateCall = () => {
 			console.error("Notification container not found.");
 		}
 	}
-	function joinChatChannel(channel, userData) {
+
+	// 添加到全局对象 window
+	window.joinChatChannel = function (channel, userData) {
 		signalingSocket.emit("join", { channel: channel, userData: userData });
 	}
 
@@ -154,7 +156,7 @@ window.initiateCall = () => {
 				}
 			}
 		};
-		
+
 		peerConnection.ondatachannel = function (event) {
 			showNotification(App.name + " joined");
 			event.channel.onmessage = (msg) => {
@@ -258,34 +260,34 @@ window.initiateCall = () => {
 const attachMediaStream = (element, stream) => (element.srcObject = stream);
 // 设置本地媒体流
 function setupLocalMedia(callback, errorback) {
-    if (localMediaStream != null) {
-        if (callback) callback();
-        return;
-    }
+	if (localMediaStream != null) {
+		if (callback) callback();
+		return;
+	}
 
-    navigator.mediaDevices
-        .getUserMedia({ audio: USE_AUDIO, video: USE_VIDEO })
-        .then((stream) => {
+	navigator.mediaDevices
+		.getUserMedia({ audio: USE_AUDIO, video: USE_VIDEO })
+		.then((stream) => {
 			// 获取到媒体流后，禁用所有轨道
-			stream.getTracks().forEach((track) => {  
-                track.enabled = false;  
-            });  
-            localMediaStream = stream;
-            const localMedia = getVideoElement(App.peerId, true);
-            attachMediaStream(localMedia, stream);
-            resizeVideos();
-            if (callback) callback();
+			stream.getTracks().forEach((track) => {
+				track.enabled = false;
+			});
+			localMediaStream = stream;
+			const localMedia = getVideoElement(App.peerId, true);
+			attachMediaStream(localMedia, stream);
+			resizeVideos();
+			if (callback) callback();
 
-            navigator.mediaDevices.enumerateDevices().then((devices) => {
-                App.videoDevices = devices.filter((device) => device.kind === "videoinput" && device.deviceId !== "default");
-                App.audioDevices = devices.filter((device) => device.kind === "audioinput" && device.deviceId !== "default");
-            });
-        })
-        .catch(() => {
+			navigator.mediaDevices.enumerateDevices().then((devices) => {
+				App.videoDevices = devices.filter((device) => device.kind === "videoinput" && device.deviceId !== "default");
+				App.audioDevices = devices.filter((device) => device.kind === "audioinput" && device.deviceId !== "default");
+			});
+		})
+		.catch(() => {
 			// 显示通知
-            showNotification("Camera/Microphone access denied or not found.");
-            if (errorback) errorback();
-        });
+			showNotification("Camera/Microphone access denied or not found.");
+			if (errorback) errorback();
+		});
 }
 
 const getVideoElement = (peerId, isLocal) => {
@@ -370,3 +372,7 @@ document.addEventListener("click", () => {
 		App.showSettings = !App.showSettings;
 	}
 });
+
+// 创建并触发 webrtcLoaded 事件, 用于告知刷新页面时触发的事件
+const event = new Event('webrtcLoaded');  
+window.dispatchEvent(event);

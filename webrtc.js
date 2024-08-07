@@ -346,6 +346,44 @@ const getVideoElement = (peerId, isLocal) => {
 	return media;
 };
 
+function startSpeechRecognition(language) {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = language;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+        const last = event.results.length - 1;
+        const transcript = event.results[last][0].transcript;
+        displaySubtitle(transcript);
+    };
+
+    recognition.onspeechend = () => {
+        recognition.stop();
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error detected: ', event.error);
+    };
+
+    recognition.start();
+}
+
+function stopSpeechRecognition() {
+    if (recognition) {
+        recognition.stop();
+    }
+}
+
+function displaySubtitle(text) {
+    const subtitles = document.getElementById('subtitles');
+    subtitles.textContent = text;
+    subtitles.style.display = 'block';
+    setTimeout(() => {
+        subtitles.style.display = 'none';
+    }, 3000); // Hide after 3 seconds
+}
+
 const resizeVideos = () => {
 	const numToString = ["", "one", "two", "three", "four", "five", "six"];
 	const videos = document.querySelectorAll("#videos .video");

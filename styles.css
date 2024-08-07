@@ -444,6 +444,53 @@ input {
 #notification-container .notification.fade-out {
 animation: fadeOut 3s forwards;
 }
+
+#languageSelectContainer {
+    display: inline-block;
+    position: relative;
+    margin-right: 2px;
+	size: small;
+}
+
+#languageButton {
+    padding: 5px 10px;
+    cursor: pointer;
+	
+}
+
+#languageSelect {
+    display: none;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 5px;
+}
+
+#languageSelectContainer:hover #languageSelect {
+    display: block;
+}
+
+#subtitles {
+    position: absolute;
+    top: -40px; /* Adjust this value to position the subtitles correctly */
+    width: 100%;
+    text-align: center;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+    display: none; /* Initially hidden */
+}
+
+.subtitles {
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+
 @keyframes fadeOut {
 0% { opacity: 1; }
 100% { opacity: 0; }

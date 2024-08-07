@@ -49,7 +49,7 @@
 		<main id="app">
 			<div id="appWrap" v-bind:style="'display:block;'">
 				<div id="intro" v-if="!callInitiated && !showChat && !showSettings">
-					<h1>Talk</h1>
+					<h1>globalTalk Hub</h1>
 					<p>A free, peer-to-peer, encrypted, open-source video calling for the web.</p>
 					<p>
 						<label for="roomId">Room Id:</label>
@@ -63,7 +63,7 @@
 
 					<div class="footer">
 						<iframe
-							src="https://ghbtns.com/github-btn.html?user=vasanthv&repo=talk&type=star&count=true&size=large"
+							src="https://ghbtns.com/github-btn.html?user=LiberBinjio&repo=GlobalTalk-Hub-Remote-Part&type=star&count=true&size=large"
 							frameborder="0"
 							scrolling="0"
 							width="170"
@@ -133,7 +133,7 @@
 						</div>
 					</div>
 					<hr class="separator" />
-
+					
 					<div class="label">Microphone 🎙️</div>
 					<div v-for="(audioDevice, i) in audioDevices" v-bind:key="audioDevice.deviceId">
 						<div
@@ -155,24 +155,31 @@
 
 				<div id="actionsWrap" v-if="callInitiated">
 					<div id="actions">
+						<div id="subtitles" class="subtitles"></div>
+						<div id="languageSelectContainer">
+							<button id="languageButton">Speech Language</button>
+							<select id="languageSelect">
+								<option value="en-US">English</option>
+								<option value="es-ES">Spanish</option>
+								<option value="fr-FR">French</option>
+								<option value="de-DE">German</option>
+								<option value="zh-CN">Chinese</option>
+								<option value="ja-JP">Japanese</option>
+								<option value="ko-KR">Korean</option>
+								<option value="it-IT">Italian</option>
+								<option value="ru-RU">Russian</option>
+								<option value="pt-PT">Portuguese</option>
+							</select>
+						</div>
 						<button v-bind:class="'icon-mic'+(audioEnabled ? '' : '-off')" v-on:click="audioToggle"></button>
 						<button v-bind:class="'icon-video'+(videoEnabled ? '' : '-off')" v-on:click="videoToggle"></button>
-						<button
-							v-bind:class="'icon-message-square '+(showChat ? 'active' : '')"
-							v-on:click="showChat = !showChat"
-						></button>
-						<button
-							v-if="!isMobileDevice"
-							v-bind:class="'icon-monitor '+(screenShareEnabled ? 'active' : '')"
-							v-on:click="screenShareToggle"
-						></button>
+						<button v-bind:class="'icon-message-square '+(showChat ? 'active' : '')" v-on:click="showChat = !showChat"></button>
+						<button v-if="!isMobileDevice" v-bind:class="'icon-monitor '+(screenShareEnabled ? 'active' : '')" v-on:click="screenShareToggle"></button>
 						<button v-bind:class="'icon-exit'" v-on:click="exit"></button>
-						<button
-							v-bind:class="'icon-more-horizontal '+(showSettings ? 'active' : '')"
-							v-on:click="showSettings = !showSettings"
-						></button>
+						<button v-bind:class="'icon-more-horizontal '+(showSettings ? 'active' : '')" v-on:click="showSettings = !showSettings"></button>
 					</div>
 				</div>
+				
 			</div>
 		</main>
 	</body>

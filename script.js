@@ -424,11 +424,3 @@ const App = Vue.createApp({
 		},
 	},
 }).mount("#app");
-
-
-document.addEventListener('DOMContentLoaded', function() {  
-	if (window.sessionStorage.getItem('inChatRoom') === 'true' &&  
-		this.roomId && this.name) {  
-		this.initiateCall();  
-	}  
-});  

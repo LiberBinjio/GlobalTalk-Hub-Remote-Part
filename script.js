@@ -17,7 +17,7 @@ const App = Vue.createApp({
 	data() {
 		return {
 			peerId: "",
-			roomId: roomId,
+			roomId: window.sessionStorage.getItem('roomId') || roomId,  // 从 sessionStorage 获取 roomId
 			roomLink: "",
 			copyText: "",
 			userAgent: "",
@@ -35,7 +35,8 @@ const App = Vue.createApp({
 			hideToolbar: true,
 			selectedAudioDeviceId: "",
 			selectedVideoDeviceId: "",
-			name: window.localStorage.name,
+			name: window.sessionStorage.getItem('name'),  // 从 sessionStorage 获取姓名 
+			callInitiated: window.sessionStorage.getItem('inChatRoom') === 'true', // 从 sessionStorage 获取是否在聊天室中
 			typing: "",
 			chats: [],
 			callInitiated: false,
@@ -56,6 +57,17 @@ const App = Vue.createApp({
 			}
 			};
 	},
+
+	mounted() {
+		// 监听到webrtc载入后，初始化通话
+		window.addEventListener('webrtcLoaded', () => {  
+			if (window.sessionStorage.getItem('inChatRoom') === 'true' &&    
+				this.roomId && this.name) {    
+				this.initiateCall();    
+			}  
+		});  
+	}, 
+
 	methods: {
 		// 初始化通话
 		initiateCall() {
@@ -64,6 +76,11 @@ const App = Vue.createApp({
 
 			this.callInitiated = true;
 			window.initiateCall();
+
+			// 存储用户姓名和 roomId 到 sessionStorage  
+			window.sessionStorage.setItem('inChatRoom', 'true');
+			window.sessionStorage.setItem('roomId', this.roomId);
+			window.sessionStorage.setItem('name', this.name);
 		},
 		// 确保摄像头和麦克风处于禁用状态
 		// if (localMediaStream) {

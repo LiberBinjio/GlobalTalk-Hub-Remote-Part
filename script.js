@@ -1,5 +1,4 @@
 /* globals attachMediaStream, Vue, peers, localMediaStream, dataChannels, signalingSocket */
-
 "use strict";
 
 // 处理 URL 中的房间 ID
@@ -29,7 +28,7 @@ const App = Vue.createApp({
 			videoDevices: [],
 			audioDevices: [],
 			audioEnabled: false,
-			videoEnabled: false,
+			videoEnabled: true,
 			screenShareEnabled: false,
 			showChat: false,
 			showSettings: false,
@@ -41,7 +40,21 @@ const App = Vue.createApp({
 			chats: [],
 			callInitiated: false,
 			callEnded: false,
-		};
+			recognition: null,
+			selectedLanguage: 'Speech Language', // 初始值为 "Speech Language"
+			languageMap: {
+				'en-US': 'English',
+				'es-ES': 'Spanish',
+				'fr-FR': 'French',
+				'de-DE': 'German',
+				'zh-CN': 'Chinese',
+				'ja-JP': 'Japanese',
+				'ko-KR': 'Korean',
+				'it-IT': 'Italian',
+				'ru-RU': 'Russian',
+				'pt-PT': 'Portuguese'
+			}
+			};
 	},
 	methods: {
 		// 初始化通话
@@ -53,6 +66,10 @@ const App = Vue.createApp({
 			window.initiateCall();
 		},
 		// 确保摄像头和麦克风处于禁用状态
+		// if (localMediaStream) {
+		// 	localMediaStream.getAudioTracks().forEach(track => track.enabled = this.audioEnabled);
+		// 	localMediaStream.getVideoTracks().forEach(track => track.enabled = this.videoEnabled);
+		// },
 		if(localMediaStream) {
 			localMediaStream.getAudioTracks().forEach(track => track.enabled = this.audioEnabled);
 			localMediaStream.getVideoTracks().forEach(track => track.enabled = this.videoEnabled);
@@ -198,6 +215,22 @@ const App = Vue.createApp({
 					this.showNotification("Unable to share screen. Please use a supported browser.");
 					console.error(e);
 				});
+		},
+		toggleSpeechRecognition() {
+            if (this.audioEnabled) {
+                this.startSpeechRecognition(this.selectedLanguage);
+            } else {
+                this.stopSpeechRecognition();
+            }
+        },
+        startSpeechRecognition(language) {
+            // Function to start speech recognition with the selected language
+            startSpeechRecognition(language);
+        },
+        stopSpeechRecognition() {
+            // Function to stop speech recognition
+            stopSpeechRecognition();
+        },
 		},
 
 		// 更新用户数据
@@ -406,4 +439,4 @@ const App = Vue.createApp({
 			this.callEnded = true;
 		},
 	},
-}).mount("#app");
+	).mount("#app");

@@ -42,19 +42,8 @@ const App = Vue.createApp({
 			callInitiated: false,
 			callEnded: false,
 			recognition: null,
-			selectedLanguage: 'Speech Language', // 初始值为 "Speech Language"
-			languageMap: {
-				'en-US': 'English',
-				'es-ES': 'Spanish',
-				'fr-FR': 'French',
-				'de-DE': 'German',
-				'zh-CN': 'Chinese',
-				'ja-JP': 'Japanese',
-				'ko-KR': 'Korean',
-				'it-IT': 'Italian',
-				'ru-RU': 'Russian',
-				'pt-PT': 'Portuguese'
-			}
+			sourceLanguage: 'en-US', // 默认源语言
+			targetLanguage: 'en-US', // 默认目标语言，将在未来实现翻译功能时使用
 			};
 	},
 
@@ -103,10 +92,102 @@ const App = Vue.createApp({
 		},
 		// 切换音频状态
 		audioToggle(e) {
-			e.stopPropagation();
-			localMediaStream.getAudioTracks()[0].enabled = !localMediaStream.getAudioTracks()[0].enabled;
+			// 确保 localMediaStream 已初始化
+			if (!localMediaStream) {
+				console.error('Local media stream is not initialized.');
+				return;
+			}
+	
+			// 切换音频轨道的启用/禁用状态
+			const track = localMediaStream.getAudioTracks()[0];
+			if (!track) {
+				console.error('No audio track found in local media stream.');
+				return;
+			}
+	
+			track.enabled = !track.enabled;
 			this.audioEnabled = !this.audioEnabled;
 			this.updateUserData("audioEnabled", this.audioEnabled);
+	
+			console.log(`Microphone is now ${this.audioEnabled ? 'enabled' : 'disabled'}.`);
+	
+			// 根据麦克风的状态启动或停止语音识别
+			if (this.audioEnabled) {
+				// console.log('Starting speech recognition...');
+				startSpeechRecognition();
+			} else {
+				// console.log('Stopping speech recognition...');
+				stopSpeechRecognition();
+			}
+		},
+		updateSourceLanguage() {
+				// 更新语言并在短暂延迟后重新启动识别
+				setTimeout(() => {
+					recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+					recognition.lang = this.sourceLanguage;
+					recognition.interimResults = true;
+					recognition.maxAlternatives = 1;
+					recognition.stop();
+					recognition.onresult = (event) => {
+						const last = event.results.length - 1;
+						const transcript = event.results[last][0].transcript;
+						console.log('Speech recognized:', transcript);
+						this.displaySubtitle(transcript);
+						this.sendSubtitle(transcript);
+					};
+		
+					recognition.onspeechend = () => {
+						console.log('Speech end detected'); // Debug: 语音输入结束
+						// 不停止识别器，直接重启以保持持续识别
+					};
+		
+					recognition.onend = () => {
+						if (isRecording) {
+							console.log('Recognition restarted');
+							// 不停止识别器，直接重启以保持持续识别
+							recognition.start();
+						}
+					};
+		
+					recognition.onerror = (event) => {
+						// console.error('Speech recognition error detected:', event.error);
+						if (event.error === 'no-speech') {
+							// 对于 no-speech 错误，不做任何处理，保持识别器运行
+				
+						} else if (event.error === 'audio-capture') {
+							stopSpeechRecognition(); // 只有在音频捕获错误时才停止识别
+						}
+					};
+		
+					recognition.start();
+					isRecording = true;
+					console.log('Speech recognition restarted with language:', this.sourceLanguage);
+				}, 500); 
+		},
+		sendSubtitle(text) {
+			const dataMessage = {
+				type: 'subtitle', 
+				subtitle: text,
+				id: this.peerId,
+				date: new Date().toISOString(),
+			};
+			console.log('Sending subtitle:', dataMessage);
+			Object.keys(dataChannels).forEach((peer_id) => {
+				const channel = dataChannels[peer_id];
+				if (channel.readyState === 'open') {
+					channel.send(JSON.stringify(dataMessage));
+				} else {
+					console.warn(`Data channel to peer ${peer_id} is not open. Current state: ${channel.readyState}`);
+				}
+			});
+		},
+
+		displaySubtitle(text) {
+			const subtitles = document.getElementById('subtitles');
+			subtitles.textContent = text || '\u200B'; // 设置字幕文本内容，使用不可见字符保持高度
+			subtitles.style.color = text ? 'white' : 'transparent'; // 如果有文字，显示白色；否则设置为透明
+			subtitles.style.display = 'block'; // 始终保持显示
+			console.log('Subtitle displayed:', text); // Debug: 显示字幕内容
 		},
 		// 切换视频状态
 		videoToggle(e) {
@@ -233,22 +314,7 @@ const App = Vue.createApp({
 					console.error(e);
 				});
 		},
-		toggleSpeechRecognition() {
-            if (this.audioEnabled) {
-                this.startSpeechRecognition(this.selectedLanguage);
-            } else {
-                this.stopSpeechRecognition();
-            }
-        },
-        startSpeechRecognition(language) {
-            // Function to start speech recognition with the selected language
-            startSpeechRecognition(language);
-        },
-        stopSpeechRecognition() {
-            // Function to stop speech recognition
-            stopSpeechRecognition();
-        },
-		},
+
 
 		// 更新用户数据
 		updateUserData(key, value) {
@@ -372,7 +438,7 @@ const App = Vue.createApp({
 				message: value,
 				date: new Date().toISOString(),
 			};
-
+			console.log('Sending data message:', dataMessage);
 			switch (key) {
 				case "chat":
 					this.chats.push(dataMessage);
@@ -456,4 +522,4 @@ const App = Vue.createApp({
 			this.callEnded = true;
 		},
 	},
-	).mount("#app");
+	}).mount("#app");

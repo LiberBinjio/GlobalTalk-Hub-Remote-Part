@@ -269,58 +269,68 @@ input {
 }
 
 #settings {
-	background: var(--settings-bg);
-	color: var(--settings-cl);
-	box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.16), 0px 1px 4px rgba(0, 0, 0, 0.16);
-	position: fixed;
-	bottom: 5rem;
-	left: 0px;
-	right: 0px;
-	z-index: 100;
-	width: 20.8rem;
-	margin: auto;
-	box-sizing: border-box;
-	border-radius: 1rem;
-	max-height: 26rem;
-	overflow-y: auto;
+    background: var(--settings-bg);
+    color: var(--settings-cl);
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.16), 0px 1px 4px rgba(0, 0, 0, 0.16);
+    position: fixed;
+    bottom: 5rem;
+    left: 0px;
+    right: 0px;
+    z-index: 100;
+    width: 20.8rem;
+    margin: auto;
+    box-sizing: border-box;
+    border-radius: 1rem;
+    max-height: 26rem;
+    overflow-y: auto;
 }
 #settings .label {
-	padding: 0.5rem 1rem;
-	font-weight: bold;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
 }
 #settings .separator {
-	margin: 0px;
-	border-top: 1px solid var(--actions-btn-a-bg);
+    margin: 0px;
+    border-top: 1px solid var(--actions-btn-a-bg);
 }
 #settings .link {
-	padding: 0.5rem 1rem;
-	white-space: nowrap;
-	width: 100%;
-	box-sizing: border-box;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	cursor: pointer;
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
 }
 #settings .link.indent {
-	padding: 0.5rem 1rem 0.5rem 2rem;
+    padding: 0.5rem 1rem 0.5rem 2rem;
 }
 #settings .link.active:before {
-	content: "✔️";
-	margin-right: 0.5rem;
+    content: "✔️";
+    margin-right: 0.5rem;
 }
 #settings .link:hover {
-	background: var(--settings-link-h-bg);
-	color: var(--settings-link-h-cl);
+    background: var(--settings-link-h-bg);
+    color: var(--settings-link-h-cl);
 }
 #settings #name {
-	display: flex;
-	align-items: center;
+    display: flex;
+    align-items: center;
 }
 #settings input {
-	background: none;
-	border: none;
-	flex: 1;
+    background: none;
+    border: none;
+    flex: 1;
 }
+#settings select {
+    background: none;
+    border: none;
+    width: 100%;
+    color: var(--settings-cl);
+    font-size: 1rem;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+}
+
 #actionsWrap {
 	position: fixed;
 	bottom: 1rem;
@@ -502,4 +512,46 @@ animation: fadeOut 3s forwards;
 		width: 50vw;
 		height: 33.3vh;
 	}
+}
+
+#subtitles {
+    position: fixed;
+    top: 73%;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 40%;
+    padding: 30px 20px;
+    font-size: 18px;
+    text-align: center;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.28);
+    border-radius: 8px;
+    display: block;
+    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+    transition: color 0.3s, min-height 0.3s; /* 为min-height添加过渡效果 */
+    min-height: 30px; /* 设置一个最小高度，确保区域在无内容时高度不变 */
+}
+
+
+
+
+
+
+
+.mic-button {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4285f2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.mic-button.active {
+    background-color: #FF5733;
 }

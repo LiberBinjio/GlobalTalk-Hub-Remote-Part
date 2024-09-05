@@ -173,7 +173,7 @@ window.initiateCall = () => {
 			channel.onopen = () => {
 				console.log(`Data channel to peer ${channel.label} is open`);
 			};
-		
+
 			channel.onmessage = (msg) => {
 				let dataMessage = {};
 				try {
@@ -186,11 +186,11 @@ window.initiateCall = () => {
 					console.error('Error parsing data message:', err);
 				}
 			};
-		
+
 			channel.onerror = (error) => {
 				console.error(`Data channel error on peer ${channel.label}:`, error);
 			};
-		
+
 			channel.onclose = () => {
 				console.log(`Data channel to peer ${channel.label} is closed`);
 			};
@@ -294,9 +294,9 @@ function setupLocalMedia(callback, errorback) {
 	navigator.mediaDevices
 		.getUserMedia({ audio: USE_AUDIO, video: USE_VIDEO })
 		.then((stream) => {
-			// 获取到媒体流后，禁用所有轨道
+			// 获取到媒体流后，禁用所有轨道  
 			stream.getTracks().forEach((track) => {
-				track.enabled = false;
+				track.enabled = false; // 默认禁用所有轨道  
 			});
 			localMediaStream = stream;
 			const localMedia = getVideoElement(App.peerId, true);
@@ -309,12 +309,14 @@ function setupLocalMedia(callback, errorback) {
 				App.audioDevices = devices.filter((device) => device.kind === "audioinput" && device.deviceId !== "default");
 			});
 		})
-		.catch(() => {
-			// 显示通知
+		.catch((error) => {
+			// 显示通知  
 			showNotification("Camera/Microphone access denied or not found.");
+			console.error("Error accessing media devices.", error);
 			if (errorback) errorback();
 		});
 }
+
 
 const getVideoElement = (peerId, isLocal) => {
 	const videoWrap = document.createElement("div");
@@ -401,7 +403,7 @@ document.addEventListener("click", () => {
 });
 
 // 创建并触发 webrtcLoaded 事件, 用于告知刷新页面时触发的事件
-const event = new Event('webrtcLoaded');  
+const event = new Event('webrtcLoaded');
 window.dispatchEvent(event);
 
 let recognition;
@@ -409,74 +411,74 @@ let isRecording = false;
 
 
 function startSpeechRecognition() {
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = App.sourceLanguage;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+	recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+	recognition.lang = App.sourceLanguage;
+	recognition.interimResults = true;
+	recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event) => {
-        const last = event.results.length - 1;
-        const transcript = event.results[last][0].transcript;
-        console.log('Speech recognized:', transcript); // Debug: 输出识别结果
-        App.displaySubtitle(transcript); // 通过 Vue 实例调用
-        App.sendSubtitle(transcript);    // 通过 Vue 实例调用
-    };
+	recognition.onresult = (event) => {
+		const last = event.results.length - 1;
+		const transcript = event.results[last][0].transcript;
+		console.log('Speech recognized:', transcript); // Debug: 输出识别结果
+		App.displaySubtitle(transcript); // 通过 Vue 实例调用
+		App.sendSubtitle(transcript);    // 通过 Vue 实例调用
+	};
 
-    recognition.onspeechend = () => {
-        console.log('Speech end detected'); // Debug: 语音输入结束
-        // 不停止识别器，直接重启以保持持续识别
-    };
+	recognition.onspeechend = () => {
+		console.log('Speech end detected'); // Debug: 语音输入结束
+		// 不停止识别器，直接重启以保持持续识别
+	};
 
-    recognition.onend = () => {
-        if (isRecording) {
-            console.log('Recognition restarted'); // Debug: 重新启动识别
+	recognition.onend = () => {
+		if (isRecording) {
+			console.log('Recognition restarted'); // Debug: 重新启动识别
 			recognition.lang = App.sourceLanguage;
-            // 不停止识别器，直接重启以保持持续识别
+			// 不停止识别器，直接重启以保持持续识别
 			recognition.start();
-        }
-    };
+		}
+	};
 
-    recognition.onerror = (event) => {
-        // console.error('Speech recognition error detected:', event.error);
-        if (event.error === 'no-speech') {
-            // 对于 no-speech 错误，不做任何处理，保持识别器运行
+	recognition.onerror = (event) => {
+		// console.error('Speech recognition error detected:', event.error);
+		if (event.error === 'no-speech') {
+			// 对于 no-speech 错误，不做任何处理，保持识别器运行
 
-        } else if (event.error === 'audio-capture') {
-            stopSpeechRecognition(); // 只有在音频捕获错误时才停止识别
-        }
-    };
+		} else if (event.error === 'audio-capture') {
+			stopSpeechRecognition(); // 只有在音频捕获错误时才停止识别
+		}
+	};
 
-    recognition.start();
-    isRecording = true;
-    console.log('Speech recognition started'); // Debug: 语音识别启动
+	recognition.start();
+	isRecording = true;
+	console.log('Speech recognition started'); // Debug: 语音识别启动
 }
 
 
 
 function stopSpeechRecognition() {
-    if (recognition) {
-        recognition.stop();
-        recognition.onend = null; // 清除重新启动的逻辑，防止意外重新启动
+	if (recognition) {
+		recognition.stop();
+		recognition.onend = null; // 清除重新启动的逻辑，防止意外重新启动
 
-        // 确保字幕区域存在并进行清理操作
-        const subtitles = document.getElementById('subtitles');
-        if (subtitles) {
-            subtitles.classList.remove('subtitles-visible');
-            subtitles.textContent = '';
-        }
-    }
-    isRecording = false;
-    console.log('Speech recognition stopped');
+		// 确保字幕区域存在并进行清理操作
+		const subtitles = document.getElementById('subtitles');
+		if (subtitles) {
+			subtitles.classList.remove('subtitles-visible');
+			subtitles.textContent = '';
+		}
+	}
+	isRecording = false;
+	console.log('Speech recognition stopped');
 }
 
 
 // Existing window.onload function
 window.onload = function () {
-    // Other initialization logic...
-    // Initialize speech recognition
-    if (!(window.webkitSpeechRecognition) && !(window.speechRecognition)) {
-        console.warn('Speech recognition not supported by this browser.');
-    } else {
-        console.log('Speech recognition is supported.');
-    }
+	// Other initialization logic...
+	// Initialize speech recognition
+	if (!(window.webkitSpeechRecognition) && !(window.speechRecognition)) {
+		console.warn('Speech recognition not supported by this browser.');
+	} else {
+		console.log('Speech recognition is supported.');
+	}
 };

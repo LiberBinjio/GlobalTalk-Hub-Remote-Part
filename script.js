@@ -28,7 +28,7 @@ const App = Vue.createApp({
 			videoDevices: [],
 			audioDevices: [],
 			audioEnabled: false,
-			videoEnabled: true,
+			videoEnabled: false,
 			screenShareEnabled: false,
 			showChat: false,
 			showSettings: false,
@@ -44,18 +44,18 @@ const App = Vue.createApp({
 			recognition: null,
 			sourceLanguage: 'en-US', // 默认源语言
 			targetLanguage: 'en-US', // 默认目标语言，将在未来实现翻译功能时使用
-			};
+		};
 	},
 
 	mounted() {
 		// 监听到webrtc载入后，初始化通话
-		window.addEventListener('webrtcLoaded', () => {  
-			if (window.sessionStorage.getItem('inChatRoom') === 'true' &&    
-				this.roomId && this.name) {    
-				this.initiateCall();    
-			}  
-		});  
-	}, 
+		window.addEventListener('webrtcLoaded', () => {
+			if (window.sessionStorage.getItem('inChatRoom') === 'true' &&
+				this.roomId && this.name) {
+				this.initiateCall();
+			}
+		});
+	},
 
 	methods: {
 		// 初始化通话
@@ -97,20 +97,22 @@ const App = Vue.createApp({
 				console.error('Local media stream is not initialized.');
 				return;
 			}
-	
-			// 切换音频轨道的启用/禁用状态
-			const track = localMediaStream.getAudioTracks()[0];
-			if (!track) {
+
+			const audioTracks = localMediaStream.getAudioTracks();
+			if (audioTracks.length === 0) {
 				console.error('No audio track found in local media stream.');
+				this.showNotification("No audio track available.");
 				return;
 			}
-	
+
+			// 切换音频轨道的启用/禁用状态
+			const track = audioTracks[0];
 			track.enabled = !track.enabled;
 			this.audioEnabled = !this.audioEnabled;
 			this.updateUserData("audioEnabled", this.audioEnabled);
-	
+
 			console.log(`Microphone is now ${this.audioEnabled ? 'enabled' : 'disabled'}.`);
-	
+
 			// 根据麦克风的状态启动或停止语音识别
 			if (this.audioEnabled) {
 				// console.log('Starting speech recognition...');
@@ -121,52 +123,52 @@ const App = Vue.createApp({
 			}
 		},
 		updateSourceLanguage() {
-				// 更新语言并在短暂延迟后重新启动识别
-				setTimeout(() => {
-					recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-					recognition.lang = this.sourceLanguage;
-					recognition.interimResults = true;
-					recognition.maxAlternatives = 1;
-					recognition.stop();
-					recognition.onresult = (event) => {
-						const last = event.results.length - 1;
-						const transcript = event.results[last][0].transcript;
-						console.log('Speech recognized:', transcript);
-						this.displaySubtitle(transcript);
-						this.sendSubtitle(transcript);
-					};
-		
-					recognition.onspeechend = () => {
-						console.log('Speech end detected'); // Debug: 语音输入结束
+			// 更新语言并在短暂延迟后重新启动识别
+			setTimeout(() => {
+				recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+				recognition.lang = this.sourceLanguage;
+				recognition.interimResults = true;
+				recognition.maxAlternatives = 1;
+				recognition.stop();
+				recognition.onresult = (event) => {
+					const last = event.results.length - 1;
+					const transcript = event.results[last][0].transcript;
+					console.log('Speech recognized:', transcript);
+					this.displaySubtitle(transcript);
+					this.sendSubtitle(transcript);
+				};
+
+				recognition.onspeechend = () => {
+					console.log('Speech end detected'); // Debug: 语音输入结束
+					// 不停止识别器，直接重启以保持持续识别
+				};
+
+				recognition.onend = () => {
+					if (isRecording) {
+						console.log('Recognition restarted');
 						// 不停止识别器，直接重启以保持持续识别
-					};
-		
-					recognition.onend = () => {
-						if (isRecording) {
-							console.log('Recognition restarted');
-							// 不停止识别器，直接重启以保持持续识别
-							recognition.start();
-						}
-					};
-		
-					recognition.onerror = (event) => {
-						// console.error('Speech recognition error detected:', event.error);
-						if (event.error === 'no-speech') {
-							// 对于 no-speech 错误，不做任何处理，保持识别器运行
-				
-						} else if (event.error === 'audio-capture') {
-							stopSpeechRecognition(); // 只有在音频捕获错误时才停止识别
-						}
-					};
-		
-					recognition.start();
-					isRecording = true;
-					console.log('Speech recognition restarted with language:', this.sourceLanguage);
-				}, 500); 
+						recognition.start();
+					}
+				};
+
+				recognition.onerror = (event) => {
+					// console.error('Speech recognition error detected:', event.error);
+					if (event.error === 'no-speech') {
+						// 对于 no-speech 错误，不做任何处理，保持识别器运行
+
+					} else if (event.error === 'audio-capture') {
+						stopSpeechRecognition(); // 只有在音频捕获错误时才停止识别
+					}
+				};
+
+				recognition.start();
+				isRecording = true;
+				console.log('Speech recognition restarted with language:', this.sourceLanguage);
+			}, 500);
 		},
 		sendSubtitle(text) {
 			const dataMessage = {
-				type: 'subtitle', 
+				type: 'subtitle',
 				subtitle: text,
 				id: this.peerId,
 				date: new Date().toISOString(),
@@ -197,17 +199,25 @@ const App = Vue.createApp({
 
 			if (this.videoEnabled) {
 				// 用户打开了摄像头，获取摄像头的媒体流  
-				navigator.mediaDevices.getUserMedia({ video: true })
+				navigator.mediaDevices.getUserMedia({ video: true, audio: this.audioEnabled })
 					.then((stream) => {
-						// 将新的媒体流添加到所有的 RTCPeerConnection 中  
+						const videoTrack = stream.getVideoTracks()[0];
+						const audioTrack = localMediaStream.getAudioTracks()[0];
+
+						// 将新的视频轨道添加到所有的 RTCPeerConnection 中  
 						for (let peer_id in peers) {
 							const sender = peers[peer_id].getSenders().find((s) => (s.track ? s.track.kind === 'video' : false));
-							sender.replaceTrack(stream.getVideoTracks()[0]);
+							if (sender) {
+								sender.replaceTrack(videoTrack);
+							}
 						}
+
 						// 更新 localMediaStream  
-						localMediaStream = stream;
+						localMediaStream.removeTrack(localMediaStream.getVideoTracks()[0]);
+						localMediaStream.addTrack(videoTrack);
+
 						// 更新自己的视频标签的媒体流  
-						attachMediaStream(document.getElementById('selfVideo'), stream);
+						attachMediaStream(document.getElementById('selfVideo'), localMediaStream);
 					})
 					.catch((err) => {
 						console.log('Failed to get local stream', err);
@@ -215,9 +225,15 @@ const App = Vue.createApp({
 			} else {
 				// 用户关闭了摄像头，停止所有的视频轨道  
 				localMediaStream.getVideoTracks().forEach(track => track.stop());
+
+				// 确保音频轨道不受影响  
+				const audioTrack = localMediaStream.getAudioTracks()[0];
+				localMediaStream = new MediaStream([audioTrack]);
+
+				// 更新自己的视频标签的媒体流  
+				attachMediaStream(document.getElementById('selfVideo'), localMediaStream);
 			}
 		},
-
 
 		// 切换自视频镜像
 		toggleSelfVideoMirror() {
@@ -366,23 +382,31 @@ const App = Vue.createApp({
 			navigator.mediaDevices
 				.getUserMedia({ audio: { deviceId: deviceId } })
 				.then((micStream) => {
+					const audioTracks = micStream.getAudioTracks();
+					if (audioTracks.length === 0) {
+						console.error('No audio track found in new microphone stream.');
+						this.showNotification("Error while swapping microphone: No audio track found.");
+						return;
+					}
+
 					this.audioEnabled = true;
 					this.updateUserData("audioEnabled", this.audioEnabled);
 
 					for (let peer_id in peers) {
 						const sender = peers[peer_id].getSenders().find((s) => (s.track ? s.track.kind === "audio" : false));
-						sender.replaceTrack(micStream.getAudioTracks()[0]);
+						if (sender) {
+							sender.replaceTrack(audioTracks[0]);
+						}
 					}
-					micStream.getAudioTracks()[0].enabled = true;
 
-					const newStream = new MediaStream([localMediaStream.getVideoTracks()[0], micStream.getAudioTracks()[0]]);
+					const newStream = new MediaStream([localMediaStream.getVideoTracks()[0], audioTracks[0]]);
 					localMediaStream = newStream;
 					attachMediaStream(document.getElementById("selfVideo"), newStream);
 					this.selectedAudioDeviceId = deviceId;
 				})
 				.catch((err) => {
-					console.log(err);
-					this.showNotification("Error while swaping microphone");
+					console.error('Error while swapping microphone:', err);
+					this.showNotification("Error while swapping microphone.");
 				});
 		},
 		// 安全化字符串
@@ -522,4 +546,4 @@ const App = Vue.createApp({
 			this.callEnded = true;
 		},
 	},
-	}).mount("#app");
+}).mount("#app");
